@@ -48,6 +48,20 @@ typedef struct {
 	device_t	devreg[DEVINTNUM * DEVPERINT];
 } devregarea_t;
 
+/*Swap Pool data structure*/
+typedef struct swap_pool_t{
+	/* at minimum, each entry should record the asid and logical page number of the occupying page*/
+	int 	asid;
+	int 	pageNum; 
+	/*put in a pointer to the page table entry*/
+} swap_pool_t;
+
+/*Page table*/
+typedef struct page_table_t {
+	unsigned int 	entryHI;
+	unsigned int 	entryLO;
+} page_table_t;
+
 
 /* Pass Up Vector */
 typedef struct passupvector {
@@ -110,9 +124,10 @@ typedef struct context_t {
 } context_t;
 
 typedef struct support_t {
-	int 		sup_asid; /* Process Id (asid) */
-	state_t 	sup_exceptState[2]; /* stored excpt states */
-	context_t 	sup_exceptContext[2]; /* pass up contexts */
+	int 			sup_asid; /* Process Id (asid) */
+	state_t 		sup_exceptState[2]; /* stored excpt states */
+	context_t 		sup_exceptContext[2]; /* pass up contexts */
+	page_table_t 	uproc_pageTable[32];	/*32 entries per U-proc's page table*/
 } support_t;
 
 
