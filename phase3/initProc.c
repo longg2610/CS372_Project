@@ -3,7 +3,7 @@
 #include "../h/types.h"
 
 #define VPNSTART 0x80000000
-/* init 8 U-proc's*/
+/* init 8 support struct*/
 support_t support_states[UPROCMAX];
 
 /*init swap pool mutex semaphore*/
@@ -42,4 +42,4 @@ int main(){
     }
 }
 
-/*set up the new process's backing store on a sencondary storage device*/
+/*set up the new process's backing store on a sencondary storage device - hardware job*/
