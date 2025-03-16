@@ -51,8 +51,9 @@ typedef struct {
 /*Swap Pool data structure*/
 typedef struct swap_pool_t{
 	/* at minimum, each entry should record the asid and logical page number of the occupying page*/
-	int 	asid;
-	int 	pageNum; 
+	int 				asid;
+	int 				pageNum;
+	page_table_t *pageTable_ptr;
 	/*put in a pointer to the page table entry*/
 } swap_pool_t;
 

@@ -8,7 +8,7 @@
 /*data structure of the Support Level*/
 
 /* 8 processes in user-mode */
-extern pcb_PTR Uproc_pcbs[UPROCMAX];
+extern support_t support_states[UPROCMAX];
 
 /*init swap pool*/
 /*swap pool should be set to 2 x UPROCMAX RAM frames*/
