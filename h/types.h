@@ -51,9 +51,9 @@ typedef struct {
 /*Swap Pool data structure*/
 typedef struct swap_pool_t{
 	/* at minimum, each entry should record the asid and logical page number of the occupying page*/
-	int 				asid;
-	int 				pageNum;
-	page_table_t *pageTable_ptr;
+	int 				asid;		/*ASID of U-proc whose logical page occupying the frame*/
+	int 				pageNum;	/*VPN of the occupying page*/
+	page_table_t *pageTable_ptr;	/*pointer to matching Page Table entry in the Page Table beloing to the owner process*/
 	/*put in a pointer to the page table entry*/
 } swap_pool_t;
 
@@ -128,10 +128,9 @@ typedef struct support_t {
 	int 			sup_asid; /* Process Id (asid) */
 	state_t 		sup_exceptState[2]; /* stored excpt states */
 	context_t 		sup_exceptContext[2]; /* pass up contexts */
-	page_table_t 	uproc_pageTable[32];	/*32 entries per U-proc's page table*/
+	page_table_t 	sup_privatePgTbl[32];	/*32 entries per U-proc's page table*/
+	int 			sup_stackTLB[500]; /*an integer array of 500 is a 2Kb area*/
 } support_t;
-
-
 
 typedef struct pcb_t {
 /* process queue fields */

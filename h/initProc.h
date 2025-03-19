@@ -1,5 +1,6 @@
 /*initilize U'proc field*/
 #ifndef INITPROC
+#define INITPROC
 
 #include "../h/initial.h"
 #include "../h/pcb.h"
