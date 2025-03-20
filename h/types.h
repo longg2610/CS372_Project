@@ -130,6 +130,7 @@ typedef struct support_t {
 	context_t 		sup_exceptContext[2]; /* pass up contexts */
 	page_table_t 	sup_privatePgTbl[32];	/*32 entries per U-proc's page table*/
 	int 			sup_stackTLB[500]; /*an integer array of 500 is a 2Kb area*/
+	int 			sup_stackGen[500];
 } support_t;
 
 typedef struct pcb_t {

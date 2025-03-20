@@ -1,5 +1,8 @@
 {
     "files.associations": {
-        "initial.h": "c"
+        "*.css": "tailwindcss",
+        "initial.h": "c",
+        "vmsupport.h": "c",
+        "cstddef": "c"
     }
 }
