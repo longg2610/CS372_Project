@@ -20,8 +20,8 @@ void support_syscall_handler()
 
 void terminate(){
     support_t *curr_process_support_struct = (support_t *)SYSCALL(8, 0, 0, 0);
-
-    SYSCALL(3, (int)&masterSemaphore, 0, 0);
+    SYSCALL(4, (int)&masterSemaphore, 0, 0);
+    /*SYSCALL(3, (int)&masterSemaphore, 0, 0);*/
     /*when a U-proc terminates, mark all of the frames it occupied as unoccupied*/
     /*-> go thru the swap pool and find frame that is occupied by the terminating U-proc*/
     int i;
@@ -33,7 +33,6 @@ void terminate(){
         }
     }
     SYSCALL(2, 0, 0, 0);
-    SYSCALL(4, (int)&masterSemaphore, 0, 0);
     return;
 }
 
@@ -197,6 +196,6 @@ void read_from_terminal(){
 }
 
 void program_trap(){
-    
+    terminate();
     return;
 }
