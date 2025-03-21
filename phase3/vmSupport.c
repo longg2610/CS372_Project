@@ -25,12 +25,6 @@ void initSwapStructs(){
     }
 }
 
-void getCurrProcessSupportStruct()
-{
-    /*get pointer to current process's support struct, syscall can't be called outside as a constant expression*/
-    support_t* curr_proc_support_struct = (support_t *)SYSCALL(8, 0, 0, 0);
-}
-
 /*move this function back to phase 2 (?)*/
 void TLB_refill_handler()
 {
@@ -54,6 +48,9 @@ void TLB_refill_handler()
 
 /*Swap Pool table must be accessed or updated mutex -> swap pool semaphore*/
 void pager(){
+
+    /*get pointer to current process's support struct, syscall can't be called outside as a constant expression*/
+    support_t* curr_proc_support_struct = (support_t *)SYSCALL(8, 0, 0, 0);
 
     /*cause of the TLB exception: in current process support structure: sup_exceptState[0]'s Cause register*/
     unsigned int cause_reg = curr_proc_support_struct->sup_exceptState[0].s_cause;
@@ -202,6 +199,9 @@ void writeFlashDevice(int asid, swap_pool_t *frameAddr){
     /*(?) Write the device’s COMMAND field. Since a write into a COMMAND field immediately initiates an I/O operation, 
     one must always supply the appropriate parameters in DATA0 before writing the COMMAND field.*/
 
+    /*As with updating a Page Table and the TLB atomically [Section 4.5.3], this is done by disabling interrupts immediately 
+    prior to writing the COMMAND field, and reenabling interrupts immediately af- ter the SYS5 instruction*/
+    disableInt();
     /*write flash device's COMMAND field with the device block number and the command to read in lower order byte*/
     /* ? write the content of block number at starting addr frameAddr (frame i)*/
     dev_reg->d_command = ( dev_reg->d_command & (0b0000000000000000000000011111111) )| (frameAddr->pageNum << 7) ;
@@ -212,6 +212,18 @@ void writeFlashDevice(int asid, swap_pool_t *frameAddr){
     /*followed by a sys5*/
     SYSCALL(5, FLASHINT, 0, 0);
 
+    enableInt();
+
     /*release the device's device reg: V device sem*/
     SYSCALL(4, (int)&device_sem[dev_sem_index], 0, 0);
 };
+
+void enableInt(){
+    setSTATUS(getSTATUS() | 0b00000000000000000000000000000001);
+    return;
+}
+
+void disableInt(){
+    setSTATUS(getSTATUS()& 0b11111111111111111111111111111110);
+    return;
+}

@@ -10,8 +10,8 @@ extern void pager();
 extern void initSwapStructs();
 extern int swap_pool_sem;
 
-extern void readFlashDevice();
-extern void writeFlashDevice();
+extern void readFlashDevice(int asid, swap_pool_t *frameAddr);
+extern void writeFlashDevice(int asid, swap_pool_t *frameAddr);
 
 extern swap_pool_t swap_pool[2 * UPROCMAX];
 extern support_t *curr_proc_support_struct;

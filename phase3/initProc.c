@@ -21,6 +21,10 @@ void initProc(){
     /*set up new process's Page Table --> shows none of the process's pages are present*/
 };
 
+/*After launching all the U-procs, test should repeatedly
+issue a SYS3 (V operation) on this semaphore. This loop should iterate
+UPROCMAX times: the number of U-proc’s launched: [1..8]*/
+
 void createProcesses()
     {
         int i = 0;
