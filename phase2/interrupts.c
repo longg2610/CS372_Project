@@ -171,6 +171,7 @@ void nonTimerInterruptHandler(int interrupt_line, int dev_no)
             *TRANSM_COMMAND = ACK;              /*ACK transmit command*/
             device_semAdd = &device_sem[(interrupt_line - 3) * DEVPERINT + dev_no * SUBDEVPERTERM + TERMWRITE]; /*get device semaphore*/
         }
+        
         /*else if transmit ready (there is receive interrupt), acknowledge*/
         else if ((*TRANSM_STATUS & TERMSTATMASK) == READY)
         {

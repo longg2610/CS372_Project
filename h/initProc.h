@@ -18,4 +18,7 @@ extern int masterSemaphore;
 /*devices semaphore*/
 /*each U-proc has its own peripheral devices*/
 extern int deviceSemaphores[48];
+
+extern void test();
+// extern void createProcesses();
 #endif

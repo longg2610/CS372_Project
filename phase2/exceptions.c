@@ -602,3 +602,24 @@ void syscallReturnToCurr()
 {
     LDST((state_t*) BIOSDATAPAGE);
 }
+
+/*move this function back to phase 2 (?)*/
+void uTLB_RefillHandler()
+{
+    /*TLB refill event has access to Phase 2 global variables, current process*/
+
+    /*determine the page number of the missing TLB entry by inspecting entryHI in the saved excpt state in BIOS DataPg*/
+    int p = ((state_t *)BIOSDATAPAGE)->s_entryHI >> 12;
+
+    /*get Page Table entry for the page number p*/
+    int i;
+    for (i = 0; i < 32; i++){
+        if ((curr_proc->p_supportStruct->sup_privatePgTbl[i].entryHI) >> 12 == p){
+            setENTRYHI(curr_proc->p_supportStruct->sup_privatePgTbl[i].entryHI);
+            setENTRYLO(curr_proc->p_supportStruct->sup_privatePgTbl[i].entryLO);
+            TLBWR();
+            LDST(((state_t *)BIOSDATAPAGE));
+            break;
+        }
+    }
+}
