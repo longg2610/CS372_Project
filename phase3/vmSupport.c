@@ -1,6 +1,7 @@
 #include "../h/vmSupport.h"
 #include "../h/initial.h"
 #include "../h/sysSupport.h"
+#include "../h/const.h"
 
 int swap_pool_sem;
 swap_pool_t swap_pool[2 * UPROCMAX];
@@ -11,8 +12,15 @@ static frameNum = 0;
 /*get support_t of currentProcess*/
 /*support_t* pFiveSupAddr = (support_t *)SYSCALL(GETSPTPTR, 0, 0, 0);*/
 support_t *curr_proc_support_struct;
+void initSwapStructs();
+void pager();
+void readFlashDevice(int asid, swap_pool_t *frameAddr, int read_content);
+void writeFlashDevice(int asid, swap_pool_t *frameAddr, int write_content);
+void enableInt();
+void disableInt();
 
 void initSwapStructs(){
+
     /*init both swap pool table and accompanying semaphore*/
     
     /*init swap pool semaphore to 1*/
@@ -52,7 +60,7 @@ Support Structure for TLB exceptions)*/
     int missing_page_num = curr_proc_support_struct->sup_exceptState[0].s_entryHI >> 12; 
 
     /*pick a frame i using the page replacement algorithm: FIFO, keep static var mod, increment by Swap Pool size each Page Fault exception*/
-    frameNum = (frameNum + 1) % 32; /*mod the swap pool size*/
+    frameNum = (frameNum + 1) % 16; /*mod the swap pool size*/
 
     /*determine of frame i is occupied*/
     /*take addr of the frame*/
@@ -133,7 +141,7 @@ void readFlashDevice(int asid, swap_pool_t *frameAddr, int read_content){
     int dev_sem_index;
     /*calculate the device reg address*/
     device_t* dev_reg;
-    dev_reg = DEVREGBASE + (DEVREGSIZE * DEVPERINT * (FLASHINT - 3) + (asid - 1) * DEVREGSIZE);
+    dev_reg = (device_t*) (DEVREGBASE + (DEVREGSIZE * DEVPERINT * (FLASHINT - 3) + (asid - 1) * DEVREGSIZE));
     dev_sem_index = (FLASHINT - 3) * 8 + (asid - 1);
 
     /*read content of backing store: read from Block Number into frame i*/
@@ -167,7 +175,7 @@ void writeFlashDevice(int asid, swap_pool_t *frameAddr, int write_content){
     int dev_sem_index;
 
     device_t *dev_reg;
-    dev_reg = DEVREGBASE + (DEVREGSIZE * DEVPERINT * (FLASHINT - 3) + (asid - 1) * DEVREGSIZE);
+    dev_reg = (device_t*) (DEVREGBASE + (DEVREGSIZE * DEVPERINT * (FLASHINT - 3) + (asid - 1) * DEVREGSIZE));
 
     dev_sem_index = (FLASHINT - 3) * 8 + (asid - 1);
 

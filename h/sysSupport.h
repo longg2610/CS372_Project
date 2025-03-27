@@ -2,7 +2,6 @@
 #define SYSSUPPORT
 #include "./initProc.h"
 
-
 void support_syscall_handler();
 
 void terminate();

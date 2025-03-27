@@ -48,6 +48,12 @@ typedef struct {
 	device_t	devreg[DEVINTNUM * DEVPERINT];
 } devregarea_t;
 
+/*Page table*/
+typedef struct page_table_t {
+	unsigned int 	entryHI;
+	unsigned int 	entryLO;
+} page_table_t;
+
 /*Swap Pool data structure*/
 typedef struct swap_pool_t{
 	/* at minimum, each entry should record the asid and logical page number of the occupying page*/
@@ -57,11 +63,6 @@ typedef struct swap_pool_t{
 	/*put in a pointer to the page table entry*/
 } swap_pool_t;
 
-/*Page table*/
-typedef struct page_table_t {
-	unsigned int 	entryHI;
-	unsigned int 	entryLO;
-} page_table_t;
 
 
 /* Pass Up Vector */

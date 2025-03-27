@@ -67,6 +67,7 @@
 #define GETEXCCODE          2
 #define GETKUP              3
 #define GETINTLINE          8
+#define UPROCMAX            8
 
 
 #define NULL 			    ((void *)0xFFFFFFFF)

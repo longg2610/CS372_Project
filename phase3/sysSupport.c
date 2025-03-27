@@ -1,8 +1,7 @@
 #include "../h/sysSupport.h"
 #include "../h/scheduler.h"
 #include "../h/initProc.h"
-
-cpu_t time_start;
+#include "../h/const.h"
 
 void support_syscall_handler()
 {

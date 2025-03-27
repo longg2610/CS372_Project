@@ -1,4 +1,5 @@
 #include "../h/initProc.h"
+#include "../h/const.h"
 #include "../h/pcb.h"
 #include "../h/types.h"
 #include "../h/vmSupport.h"
@@ -70,7 +71,8 @@ void test()
             }
 
             /*init all page table entries in the support_t of the [i-1] process*/
-            for (int j = 0; j < 32; j++)
+            int j;
+            for ( j = 0; j < 32; j++)
             {
                 /*set asid in each page table entry to i - the asid is at bit 6 - bit 11*/
                 support_states[i - 1].sup_privatePgTbl[j].entryHI |= i << 6;
@@ -100,10 +102,9 @@ void test()
         /*call SYS1 to create process*/
         SYSCALL(1, (int)&initialState, (int)&support_states[i - 1], 0);
         }
-        int j;
 
         /*test P mastersemaphore 8 times when all U-proc is launched*/
-        for (int j = 0; j < UPROCMAX;j++){
+        for (j = 0; j < UPROCMAX;j++){
             SYSCALL(3, (int)&masterSemaphore, 0, 0);
         }
     /*after this loop, `test` issue SYS2, triggering a HALT by the Nucleus*/

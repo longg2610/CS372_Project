@@ -1,0 +1,35 @@
+{
+    "boot": {
+        "core-file": "kernel.core.umps",
+        "load-core-file": true
+    },
+    "bootstrap-rom": "/usr/share/umps3/coreboot.rom.umps",
+    "clock-rate": 1,
+    "devices": {
+        "flash0": {
+            "enabled": true,
+            "file": "/Users/nguyen_v4/cs372/CS372_Project/testers/fibSeven.umps"
+        },
+        "printer0": {
+            "enabled": true,
+            "file": "/Users/nguyen_v4/cs372/CS372_Project/testers/printerTest.umps"
+        },
+        "terminal0": {
+            "enabled": true,
+            "file": "term0.umps"
+        },
+        "terminal1": {
+            "enabled": false,
+            "file": "/Users/nguyen_v4/cs372/CS372_Project/testers/terminalTest1.umps"
+        }
+    },
+    "execution-rom": "/usr/share/umps3/exec.rom.umps",
+    "num-processors": 1,
+    "num-ram-frames": 128,
+    "symbol-table": {
+        "asid": 64,
+        "file": "kernel.stab.umps"
+    },
+    "tlb-floor-address": "0x80000000",
+    "tlb-size": 64
+}

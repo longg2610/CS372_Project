@@ -4,8 +4,9 @@
 
 #include "../h/initial.h"
 #include "../h/pcb.h"
+#include "../h/vmSupport.h"
+#include "../h/const.h"
 
-#define UPROCMAX 8
 /*data structure of the Support Level*/
 
 /*init swap pool*/
@@ -20,5 +21,4 @@ extern int masterSemaphore;
 extern int deviceSemaphores[48];
 
 extern void test();
-// extern void createProcesses();
 #endif
