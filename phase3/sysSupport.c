@@ -54,14 +54,16 @@ void terminate(){
         }
     }
     SYSCALL(2, 0, 0, 0);
-    return;
+    increasePC();
+    LDST((state_t *)BIOSDATAPAGE);
 }
 
 void get_TOD(){
     cpu_t time_end;
     STCK(time_end);
     ((state_t *)BIOSDATAPAGE)->s_v0 = time_end;
-    LDST((state_t*)BIOSDATAPAGE);
+    increasePC();
+    LDST((state_t *)BIOSDATAPAGE);
 }
 
 void write_to_printer(){
@@ -127,6 +129,7 @@ void write_to_printer(){
     else {
         ((state_t *)BIOSDATAPAGE)->s_v0 = transmitted_chars;
     }
+    increasePC();
     LDST((state_t *)BIOSDATAPAGE);
 }
 
@@ -169,6 +172,7 @@ void write_to_terminal(){
         SYSCALL(3, (int)&device_sem[dev_sem_index], 0, 0);
 
         /*write char to the command field and set COMMAND code*/
+        /*terminal_reg->t_transm_command = (terminal_reg->t_transm_command & 0b1111111111111111111111100000000) | 2; */
         terminal_reg->t_transm_command = 2 | ( c << 8);
 
         /*set transmit command*/
@@ -190,6 +194,7 @@ void write_to_terminal(){
         /*when status not 'char transmitted', negative of teh device status value is returned in v0*/
         ((state_t *)BIOSDATAPAGE)->s_v0 = -(status);
     }
+    increasePC();
     LDST((state_t *)BIOSDATAPAGE);
 }
 
@@ -237,10 +242,23 @@ void read_from_terminal(){
     else{
         ((state_t *)BIOSDATAPAGE)->s_v0 = -(status);
     }
-    LDST((state_t*)BIOSDATAPAGE);
+    increasePC();
+    LDST((state_t *)BIOSDATAPAGE);
 }
 
 void program_trap(){
     terminate();
     return;
+};
+
+void increasePC()  
+{
+    /* Add 4 to program counter to move to next instruction*/
+    ((state_t*) BIOSDATAPAGE)->s_pc += 4;
 }
+
+/*Similar to what the Nucleus does when 
+returning from a successful SYSCALL request [Section 3.5.10], 
+the Sup- port Level’s SYSCALL exception handler must also increment 
+the PC by 4 in order to return control to the instruction after the SYSCALL instruction.
+*/

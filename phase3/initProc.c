@@ -23,7 +23,7 @@ void test()
     /* init 8 support struct as static array*/
     static support_t support_states[UPROCMAX];
     
-    /*init the swap pool table and swap pool semaphore*/
+    /*The InstantiatorProcess will : 1.init the swap pool table and swap pool semaphore, 2. devices sem*/
     initSwapStructs();
 
     /*set up new process's Page Table --> shows none of the process's pages are present*/

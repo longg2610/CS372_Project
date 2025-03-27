@@ -27,7 +27,7 @@ void initSwapStructs(){
     swap_pool_sem = 1;
 
     /*frame unoccupied has an entry of -1 in ASID in the Swap Pool table -> all frames are unoccupied initially*/
-    /*init all swap pool entries ASID to -1 (?)*/
+    /*init all swap pool entries ASID to -1; negative means empty*/
     int i;
     for (i = 0; i < 2 * UPROCMAX;i++){
         swap_pool[i].asid = -1;
@@ -64,7 +64,7 @@ Support Structure for TLB exceptions)*/
 
     /*determine of frame i is occupied*/
     /*take addr of the frame*/
-    swap_pool_t *frameAddr = (int*) (SWAPPOOL_STARTADDR + (frameNum * PAGESIZE));
+    swap_pool_t *frameAddr = (swap_pool_t *) (SWAPPOOL_STARTADDR + (frameNum * PAGESIZE));
 
     /*to check if swap pool is occupied, examine the asid*/
     if (frameAddr->asid != -1){
@@ -116,7 +116,7 @@ Support Structure for TLB exceptions)*/
     }
 
 
-    /*update TLB*/
+    /*disable interrupts*/
     setSTATUS(getSTATUS()& 0b11111111111111111111111111111110);
 
     /*update TLB: */
@@ -133,7 +133,7 @@ Support Structure for TLB exceptions)*/
     /*releas mutex for swap pool*/
     SYSCALL(4, (int)&swap_pool_sem, 0, 0);
 
-    LDST(((state_t *)BIOSDATAPAGE)->s_status);
+    LDST(((state_t *)BIOSDATAPAGE));
 }
 
 void readFlashDevice(int asid, swap_pool_t *frameAddr, int read_content){
