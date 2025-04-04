@@ -15,6 +15,5 @@ void write_to_terminal();
 void read_from_terminal();
 
 void program_trap();
-void increasePC();
 
 #endif

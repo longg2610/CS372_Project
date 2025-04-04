@@ -8,19 +8,11 @@
     "devices": {
         "flash0": {
             "enabled": true,
-            "file": "/Users/nguyen_v4/cs372/CS372_Project/testers/fibSeven.umps"
-        },
-        "printer0": {
-            "enabled": true,
-            "file": "/Users/nguyen_v4/cs372/CS372_Project/testers/printerTest.umps"
+            "file": "/Users/nguyen_v4/cs372/CS372_Project/testers/asciiArt.umps"
         },
         "terminal0": {
             "enabled": true,
             "file": "term0.umps"
-        },
-        "terminal1": {
-            "enabled": false,
-            "file": "/Users/nguyen_v4/cs372/CS372_Project/testers/terminalTest1.umps"
         }
     },
     "execution-rom": "/usr/share/umps3/exec.rom.umps",

@@ -13,6 +13,7 @@
 /*swap pool should be set to 2 x UPROCMAX RAM frames*/
 extern swap_pool_t swap_pool[2 * UPROCMAX];
 
+extern void debug(int a0, int a1, int a2, int a3);
 /* semaphore*/
 extern int masterSemaphore;
 

@@ -3,6 +3,7 @@
 #include "../h/initProc.h"
 #include "../h/const.h"
 
+HIDDEN void increasePC();
 void support_syscall_handler()
 {
     int a0;
@@ -55,7 +56,7 @@ void terminate(){
     }
     SYSCALL(2, 0, 0, 0);
     increasePC();
-    LDST((state_t *)BIOSDATAPAGE);
+    LDST((state_t *) &(curr_proc_support_struct->sup_exceptState[1]));
 }
 
 void get_TOD(){
@@ -67,11 +68,10 @@ void get_TOD(){
 }
 
 void write_to_printer(){
-    /*number of transmitted characters*/
-    int transmitted_chars;
 
+    unsigned int virtual_addr;
     /*virtual addr of first char in a1*/
-    char* virtual_addr = (char *) ((state_t *)BIOSDATAPAGE)->s_a1;
+    virtual_addr = (memaddr) ((state_t *)BIOSDATAPAGE)->s_a1;
 
     /*length of string in a2*/
     int string_len = ((state_t *)BIOSDATAPAGE)->s_a2;
@@ -87,25 +87,27 @@ void write_to_printer(){
     dev_sem_index = ((PRNTINT - 3) * DEVPERINT) + (curr_process_support_struct->sup_asid - 1);
 
     /*if length of string > 128 or < 0, terminate the u-proc*/
-    if ((string_len > 128) || (string_len < 0)){
+    if ((string_len > 128) || (string_len <= 0)){
         terminate();
         /*terminate*/
     }
 
     /*check if the address is in range of the logical addr space*/
-    if ( (memaddr*) virtual_addr  < (memaddr*) 0x80000000 && (memaddr*) virtual_addr > (memaddr*) 0xBFFFF)
+    if ( virtual_addr  < KUSEG)
     {
         terminate();
     }
     
     /*loop and read all characters*/
-    int i;
+    int i = 0 ;
     char c;
     int status;
-    for (i = 0; i < string_len; i++)
+    int errorCond = FALSE;
+    char *va = (char *)virtual_addr;
+
+    while (i < string_len || !errorCond)
     {
-        
-        c = *(virtual_addr + i) ;
+        c = *va ;
 
         /*P printer semaphore*/
         SYSCALL(3, (int)&device_sem[dev_sem_index], 0, 0);
@@ -114,23 +116,27 @@ void write_to_printer(){
         printer_reg->d_command = 2;        /*write command - transmit the char in DATA0 over the line*/
         status = SYSCALL(5, PRNTINT, (curr_process_support_struct->sup_asid - 1), FALSE);
 
-        if (status == 1)
+        if (status != 1)
         {
-            transmitted_chars++;
+            errorCond = TRUE;
         }
+        else{
+            i++;
+        }
+        va++;
 
         SYSCALL(4, (int)&device_sem[dev_sem_index], 0, 0);
     }
 
     /*if device not ready, the negative of the device's status val is returned in v0*/
     if (status != 1){
-        ((state_t *)BIOSDATAPAGE)->s_v0 = -(status);
+        ((state_t *)BIOSDATAPAGE)->s_v0 = 0 - status;
     }
     else {
-        ((state_t *)BIOSDATAPAGE)->s_v0 = transmitted_chars;
+        ((state_t *)BIOSDATAPAGE)->s_v0 = i;
     }
     increasePC();
-    LDST((state_t *)BIOSDATAPAGE);
+    LDST((state_t *) &(curr_proc_support_struct->sup_exceptState[1]));
 }
 
 void write_to_terminal(){
@@ -141,7 +147,7 @@ void write_to_terminal(){
     int string_len = ((state_t *)BIOSDATAPAGE)->s_a2;
 
     /*virtual addr of first char in a1*/
-    char* virtual_addr = (char *) ((state_t *)BIOSDATAPAGE)->s_a1;
+    unsigned int virtual_addr = (memaddr) ((state_t *)BIOSDATAPAGE)->s_a1;
 
     /*calc printer address*/
     device_t* terminal_reg;
@@ -158,7 +164,7 @@ void write_to_terminal(){
     }
 
     /*check if the address is in range of the logical addr space*/
-    if ( (memaddr*) virtual_addr  < (memaddr*) 0x80000000 && (memaddr*) virtual_addr > (memaddr*) 0xBFFFF)
+    if (virtual_addr < KUSEG)
     {
         terminate();
     }
@@ -166,14 +172,16 @@ void write_to_terminal(){
     char c;
     int i;
     int status;
-    for (i = 0; i < string_len; i++)
+    int errorCond = FALSE;
+    char *va = (char *) virtual_addr;
+    while (i < string_len || !errorCond)
     {
-        c = *(virtual_addr + i);
+        c = *va;
         SYSCALL(3, (int)&device_sem[dev_sem_index], 0, 0);
 
         /*write char to the command field and set COMMAND code*/
         /*terminal_reg->t_transm_command = (terminal_reg->t_transm_command & 0b1111111111111111111111100000000) | 2; */
-        terminal_reg->t_transm_command = 2 | ( c << 8);
+        terminal_reg->t_transm_command = ( c << 8) | 2;
 
         /*set transmit command*/
         /*terminal_reg->t_transm_command = (terminal_reg->t_transm_command & 0b1111111111111111111111100000000) | 2; */
@@ -181,21 +189,24 @@ void write_to_terminal(){
         status = SYSCALL(5, TERMINT, (curr_process_support_struct->sup_asid-1), FALSE);
         SYSCALL(4, (int)&device_sem[dev_sem_index], 0, 0);
 
-        if ((status & TERMSTATMASK) == 5){
-            transmitted_chars++;
+        if ((status & TERMSTATMASK) != 5){
+            errorCond = TRUE;
         }
+        else {
+            i++;
+        }
+        va++;
     }
 
-
     if ((status & TERMSTATMASK) == 5){
-        ((state_t *)BIOSDATAPAGE)->s_v0 = transmitted_chars;
+        ((state_t *)BIOSDATAPAGE)->s_v0 = i;
     }
     else{
         /*when status not 'char transmitted', negative of teh device status value is returned in v0*/
-        ((state_t *)BIOSDATAPAGE)->s_v0 = -(status);
+        ((state_t *)BIOSDATAPAGE)->s_v0 = 0 - (status);
     }
     increasePC();
-    LDST((state_t *)BIOSDATAPAGE);
+    LDST((state_t *) &(curr_proc_support_struct->sup_exceptState[1]));
 }
 
 void read_from_terminal(){
@@ -204,10 +215,10 @@ void read_from_terminal(){
     support_t *curr_process_support_struct = (support_t *)SYSCALL(8, 0, 0, 0);
 
     /*virtual addr in a1*/
-    char *virtual_addr = (char *) ((state_t *)BIOSDATAPAGE)->s_a1;
+    unsigned int virtual_addr = (memaddr) ((state_t *)BIOSDATAPAGE)->s_a1;
 
     /*check if the address is in range of the logical addr space*/
-    if ( (memaddr*) virtual_addr  < (memaddr*) 0x80000000 && (memaddr*) virtual_addr > (memaddr*) 0xBFFFF)
+    if (virtual_addr < KUSEG)
     {
         terminate();
     }
@@ -222,7 +233,9 @@ void read_from_terminal(){
 
     /*read the string until meet the ned of string char '\0'*/
     int status;
-    while ((*virtual_addr) != EOS)
+    int errorCond = FALSE;
+    char *va = (char *)virtual_addr;
+    while (*va != 0x0A || !errorCond)
     {
         SYSCALL(3, (int)&device_sem[dev_sem_index], 0, 0);
 
@@ -230,20 +243,25 @@ void read_from_terminal(){
         terminal_reg->t_recv_command = 2;
         status = SYSCALL(5, TERMINT, (curr_process_support_struct->sup_asid) - 1, TRUE);
 
+        SYSCALL(4, (int)&device_sem[dev_sem_index], 0, 0);
+
         /*if the status is Character Received: increment the transmitted count*/
-        if (status & TERMSTATMASK == 5){
+        if (status & TERMSTATMASK != 5){
+            errorCond = TRUE;
+        }
+        else{
             transmitted_char++;
         }
-        SYSCALL(4, (int)&device_sem[dev_sem_index], 0, 0);
+        va++;
     }
     if (status & TERMSTATMASK == 5){
         ((state_t *)BIOSDATAPAGE)->s_v0 = transmitted_char;
     }
     else{
-        ((state_t *)BIOSDATAPAGE)->s_v0 = -(status);
+        ((state_t *)BIOSDATAPAGE)->s_v0 = 0 - (status);
     }
     increasePC();
-    LDST((state_t *)BIOSDATAPAGE);
+    LDST((state_t *) &(curr_proc_support_struct->sup_exceptState[1]));
 }
 
 void program_trap(){
@@ -251,7 +269,7 @@ void program_trap(){
     return;
 };
 
-void increasePC()  
+HIDDEN void increasePC()  
 {
     /* Add 4 to program counter to move to next instruction*/
     ((state_t*) BIOSDATAPAGE)->s_pc += 4;

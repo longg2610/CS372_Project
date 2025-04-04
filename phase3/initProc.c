@@ -6,14 +6,19 @@
 #include "../h/sysSupport.h"
 #include "/usr/include/umps3/umps/libumps.h"
 
-#define VPNSTART 0x80000000
+
 
 /*init peripheral device semaphores*/
 int deviceSemaphores[48];
 int masterSemaphore;
 
+void debug(int a0, int a1, int a2, int a3){
+    return;
+}
+
 void test()
 {
+    
     masterSemaphore = 0;
     /*init semaphore*/
     int j;
@@ -21,11 +26,10 @@ void test()
         deviceSemaphores[j] = 1;
     }
     /* init 8 support struct as static array*/
-    static support_t support_states[UPROCMAX];
+    static support_t support_states[UPROCMAX + 1];
     
     /*The InstantiatorProcess will : 1.init the swap pool table and swap pool semaphore, 2. devices sem*/
     initSwapStructs();
-
     /*set up new process's Page Table --> shows none of the process's pages are present*/
     int i;
         for (i = 1; i <= UPROCMAX; i++)

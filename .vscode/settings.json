@@ -3,6 +3,7 @@
         "*.css": "tailwindcss",
         "initial.h": "c",
         "vmsupport.h": "c",
-        "cstddef": "c"
+        "cstddef": "c",
+        "syssupport.h": "c"
     }
 }
