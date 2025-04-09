@@ -3,11 +3,11 @@
 #include "h/localLibumps.h"
 #include "h/tconst.h"
 #include "h/print.h"
-#include "../h/initProc.h"
 
-HIDDEN void debug(int a0, int a1, int a2, int a3){
-    return;
-}
+void debug(int a0, int a1, int a2, int a3){
+	return;
+};
+
 int main()
 {
 

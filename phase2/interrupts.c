@@ -61,18 +61,23 @@
 void interruptHandler(unsigned int cause)
 {
     /*determine highest priority pending interrupt*/
+    debug(200, 200, 200, 200);
 
     /* Check PLT Interrupt - Interrupt Line 1 */
-    if      ((cause >> (PLTINT + GETINTLINE)         & CLEAR31MSB) == ON){PLTInterruptHandler();}  
+    if      ((cause >> (PLTINT + GETINTLINE)         & CLEAR31MSB) == ON){
+        debug(201, 201, 201, 201);
+        PLTInterruptHandler();}  
 
     /* Check Interval Timer - Interrupt Line 2 */
-    else if ((cause >> (INTERVALTMRINT + GETINTLINE) & CLEAR31MSB) == ON){IntervalTimerInterruptHandler();}  
+    else if ((cause >> (INTERVALTMRINT + GETINTLINE) & CLEAR31MSB) == ON){
+        IntervalTimerInterruptHandler();}  
 
     /* Check Disk Devices - Interrupt Line 3 */
     else if ((cause >> (DISKINT + GETINTLINE)        & CLEAR31MSB )== ON){nonTimerInterruptHandler(DISKINT, getPendingDevice(INTERRUPTLINE3));} 
 
     /* Check Flash Drive - Interrupt Line 4 */
-    else if ((cause >> (FLASHINT + GETINTLINE)       & CLEAR31MSB) == ON){nonTimerInterruptHandler(FLASHINT, getPendingDevice(INTERRUPTLINE4));}
+    else if ((cause >> (FLASHINT + GETINTLINE)       & CLEAR31MSB) == ON){
+        nonTimerInterruptHandler(FLASHINT, getPendingDevice(INTERRUPTLINE4));}
 
     /* Check Network Devices - Interrupt Line 5 */
     else if ((cause >> (NETWINT + GETINTLINE)        & CLEAR31MSB) == ON){nonTimerInterruptHandler(NETWINT, getPendingDevice(INTERRUPTLINE5));}
@@ -147,7 +152,8 @@ int getPendingDevice(memaddr* int_line_bitmap)
 /*************************************************/
 void nonTimerInterruptHandler(int interrupt_line, int dev_no)
 {
-    STCK(time_start); 
+    debug(500, 500, 500, 500);
+    STCK(time_start);
     /*store time spent in interrupt handling*/
 
     device_t* device_register = DEVREGBASE + (interrupt_line - 3) * DEVREGINTSCALE + dev_no * DEVREGDEVSCALE;
@@ -204,7 +210,8 @@ void nonTimerInterruptHandler(int interrupt_line, int dev_no)
     if(curr_proc != NULL)
     /*return to current process*/
     {
-        LDST((state_t*) BIOSDATAPAGE);
+        debug(501, 501, 501, 501);
+        LDST((state_t *)BIOSDATAPAGE);
     } 
     else{
         scheduler();  /*if there's no current process, scheduler calls WAIT()*/

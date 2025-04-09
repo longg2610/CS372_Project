@@ -31,7 +31,8 @@ int process_cnt;        /*number of started, but not yet terminated processes*/
 int softblock_cnt;      /*number of started, but not terminated processes that in are the “blocked” state due to an I/O or timer request*/
 pcb_PTR ready_queue;    /*tail pointer to a queue of pcbs that are in the “ready” state*/
 pcb_PTR curr_proc;      /*pointer to the pcb that is in the “running” state, i.e. the current executing process.*/
-int device_sem [49];    /*device semaphores array*/
+int device_sem [DEVSEMNO];    /*device semaphores array*/
+void test();
 
 /*************************************************/
 /* Main Entry Point                              */
@@ -46,8 +47,12 @@ int device_sem [49];    /*device semaphores array*/
 /*                                               */
 /* Returns: 1 on error (should never return)     */
 /*************************************************/
+void debug(int a0, int a1, int a2, int a3){
+    return;
+}
 int main()
 {
+    debug(1, 1, 1, 1);
     /* Initialize Pass Up Vector for exceptions:
      * - TLB refill handler and stack
      * - General exception handler and stack */
@@ -60,7 +65,7 @@ int main()
     /*Initialize Level 2 variables: Process Control Blocks, Active Semaphore List*/
     initPcbs();
     initASL();
-
+    
     /*Initialize Nucleus maintained variables*/
     process_cnt = 0;                    /*number of started but not terminated process*/
     softblock_cnt = 0;                  /* process in blocked state*/
@@ -76,18 +81,8 @@ int main()
     LDIT(CLOCKINTERVAL);                    /*Load the system-wide Interval Timer with 100 milliseconds*/
     curr_proc = allocPcb();                 /*Instantiate a single process*/
     insertProcQ(&ready_queue, curr_proc);   /*place process in Ready Queue*/
-    process_cnt++;                          /*increment process count*/
-
-
-    /*initializing the processor state */
-    /*Local Timer (bit 27) enabled, interrupt mask on (bit 15-8), interrupt (bit 2) enabled, kernel mode on (= 0)*/
-    curr_proc->p_s.s_status = TEBITON | IMON | IEPBITON;
-    curr_proc->p_s.s_sp = *((int*) RAMBASEADDR) + *((int*) RAMBASESIZE);  /*set stack pointer to RAMTOP*/
-    curr_proc->p_s.s_pc = (memaddr) test;                                 /*set pc to test*/
-    curr_proc->p_s.s_t9 = (memaddr) test;                                 /*set s_t9 to the same value with pc*/
-
-
-    /*set all process tree fields to NULL*/
+    process_cnt++;
+    
     curr_proc->p_prnt = NULL;
     curr_proc->p_child = NULL;
     curr_proc->p_sib = NULL;
@@ -97,7 +92,6 @@ int main()
     curr_proc->p_time = (cpu_t) 0;
     curr_proc->p_semAdd = NULL;
     curr_proc->p_supportStruct = NULL;
-
 
     /*call the Scheduler*/
     scheduler();

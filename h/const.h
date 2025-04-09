@@ -55,6 +55,9 @@
 
 
 /* utility constants */
+#define ERROR               -1
+#define SUCCESS             0
+#define USER                1
 #define ON                  1
 #define OFF                 0
 #define	TRUE			    1
@@ -68,8 +71,11 @@
 #define GETKUP              3
 #define GETINTLINE          8
 #define UPROCMAX            8
-#define VPNSTART            0x80000000
+#define VPNSTART            0x80000
 
+#define VON                 0x200
+#define GON                 0x100
+#define DON                 0x400
 
 #define NULL 			    ((void *)0xFFFFFFFF)
 

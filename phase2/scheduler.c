@@ -48,36 +48,45 @@ cpu_t time_start;
 /*    - Start process execution                  */
 /*                                               */
 /* Parameters: none                              */
+
 /* Returns: void (never returns directly)        */
 /*************************************************/
 void scheduler()
 {
     /*get the next process in ready queue*/
+    /*debug(2,2,2,2);*/
+    
     curr_proc = removeProcQ(&ready_queue); 
 
     if(curr_proc == NULL)
     /*ready queue empty*/
     {
-        if (process_cnt == 0)
+
+        if (process_cnt == 0){
+            debug(108, 108, 108, 108);
         /*If the Process Count is zero invoke the HALT BIOS service/instruction*/
             HALT();
+            }
 
-        if (process_cnt > 0 && softblock_cnt > 0)
+        if (softblock_cnt > 0)
         /*If the Process Count > 0 and the Soft-block Count > 0 enter a Wait State*/
         {
+            debug(200, 200, 200, 200);
             setSTATUS((IECBITON | IMON) & TEBITOFF);        /*enable interrupts and disable PLT*/
             WAIT();  
         }
 
         /*Deadlock for Pandos is defined as when the Process Count > 0 and the Soft-block Count is zero.*/
-        if (process_cnt > 0 && softblock_cnt == 0)
         /* when the Process Count > 0 and the Soft-block Count is zero, Deadlock detected*/
-            PANIC();
+        debug(205, 205, 205, 205);
+        PANIC();
     }
 
     else
     /*ready queue not empty*/
     {   
+        debug(109, 109, 109, 109);
+
         setTIMER(TIMESLICE);        /*load 5 milliseconds into the PLT*/
         STCK(time_start);           /*start quantum of current process*/
         LDST(&(curr_proc->p_s));    /*perform Load Process State stored in pcb of the Current Process, Current Process starts running*/

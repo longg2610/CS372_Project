@@ -28,5 +28,6 @@ extern int softblock_cnt;   /*number of started, but not terminated processes th
 extern pcb_PTR ready_queue; /*tail pointer to a queue of pcbs that are in the “ready” state*/
 extern pcb_PTR curr_proc;   /*pointer to the pcb that is in the “running” state, i.e. the current executing process.*/
 extern int device_sem [49]; /*array of device semaphores*/
-extern void test(); 
+extern void test();
+extern void debug(int a0, int a1, int a2, int a3);
 #endif

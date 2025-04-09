@@ -78,7 +78,6 @@ typedef unsigned int devregtr;
 #define NOLEAVES		4	/* number of leaves of p8 process tree */
 #define MAXSEM			20
 
-
 SEMAPHORE term_mut=1,	/* for mutual exclusion on terminal */
 		s[MAXSEM+1],	/* semaphore array */
 		testsem=0,		/* for a simple test */
@@ -122,13 +121,14 @@ void print(char *msg) {
 	char *s = msg;
 	devregtr * base = (devregtr *) (TERM0ADDR);
 	devregtr status;
-	
-	SYSCALL(PASSERN, (int)&term_mut, 0, 0);				/* P(term_mut) */
+	SYSCALL(PASSERN, (int)&term_mut, 0, 0);			/* P(term_mut) */
 	while (*s != EOS) {
 		*(base + 3) = PRINTCHR | (((devregtr) *s) << BYTELEN);
-		status = SYSCALL(WAITIO, TERMINT, 0, 0);	
+		status = SYSCALL(WAITIO, TERMINT, 0, 0);
 		if ((status & TERMSTATMASK) != RECVD)
+		{
 			PANIC();
+		}
 		s++;	
 	}
 	SYSCALL(VERHOGEN, (int)&term_mut, 0, 0);				/* V(term_mut) */
@@ -137,16 +137,27 @@ void print(char *msg) {
 
 /* TLB-Refill Handler */
 /* One can place debug calls here, but not calls to print */
-/*void uTLB_RefillHandler () {
+/*
+void uTLB_RefillHandler () {
 		
 	setENTRYHI(0x80000000);
 	setENTRYLO(0x00000000);
 	TLBWR();	
 	
 	LDST ((state_PTR) 0x0FFFF000);
-} */
+}
+*/
 
 
+/*
+void debug(int param1, int param2, int param3, int param4)
+{
+    int a = 0;
+    a--;
+    int b = a-1;
+	return;
+}
+*/
 /*********************************************************************/
 /*                                                                   */
 /*                 p1 -- the root process                            */
@@ -154,7 +165,6 @@ void print(char *msg) {
 void test() {	
 	
 	SYSCALL(VERHOGEN, (int)&testsem, 0, 0);					/* V(testsem)   */
-
 	print("p1 v(testsem)\n");
 
 	/* set up states of the other processes */
@@ -235,15 +245,17 @@ void test() {
 	gchild4state.s_pc = gchild4state.s_t9 = (memaddr)p8leaf;
 	gchild4state.s_status = gchild4state.s_status | IEPBITON | CAUSEINTMASK | TEBITON;
 	
+	debug(startp2,26,26,26);
 	/* create process p2 */
 	SYSCALL(CREATETHREAD, (int)&p2state, (int) NULL , 0);				/* start p2     */
-
+	
 	print("p2 was started\n");
 
+	debug(startp2,26,26,26);
 	SYSCALL(VERHOGEN, (int)&startp2, 0, 0);								/* V(startp2)   */
-
+	debug(startp2, endp2,27,27);
 	SYSCALL(PASSERN, (int)&endp2, 0, 0);								/* P(endp2)     */
-
+	debug(35,36,37,38);
 	/* make sure we really blocked */
 	if (p1p2synch == 0)
 		print("error: p1/p2 synchronization bad\n");
@@ -251,7 +263,7 @@ void test() {
 	SYSCALL(CREATETHREAD, (int)&p3state, (int) NULL, 0);				/* start p3     */
 
 	print("p3 is started\n");
-
+	debug(7,7,7,7);
 	SYSCALL(PASSERN, (int)&endp3, 0, 0);								/* P(endp3)     */
 
 	SYSCALL(CREATETHREAD, (int)&p4state, (int) NULL, 0);				/* start p4     */
@@ -298,10 +310,10 @@ void test() {
 
 /* p2 -- semaphore and cputime-SYS test process */
 void p2() {
+	
 	int		i;				/* just to waste time  */
 	cpu_t	now1,now2;		/* times of day        */
 	cpu_t	cpu_t1,cpu_t2;	/* cpu time used       */
-
 	SYSCALL(PASSERN, (int)&startp2, 0, 0);				/* P(startp2)   */
 
 	print("p2 starts\n");
@@ -309,15 +321,17 @@ void p2() {
 	/* initialize all semaphores in the s[] array */
 	for (i=0; i<= MAXSEM; i++)
 		s[i] = 0;
-
+	debug(50,50,50,50);
 	/* V, then P, all of the semaphores in the s[] array */
 	for (i=0; i<= MAXSEM; i++)  {
 		SYSCALL(VERHOGEN, (int)&s[i], 0, 0);			/* V(S[I]) */
+		/*debug(3,3,s[i],3);*/
 		SYSCALL(PASSERN, (int)&s[i], 0, 0);			/* P(S[I]) */
+		/*debug(3,3,s[i],3);*/
 		if (s[i] != 0)
 			print("error: p2 bad v/p pairs\n");
 	}
-
+	
 	print("p2 v's successfully\n");
 
 	/* test of SYS6 */
@@ -331,10 +345,13 @@ void p2() {
 
 	cpu_t2 = SYSCALL(GETCPUTIME, 0, 0, 0);			/* CPU time used */
 	STCK(now2);				/* time of day  */
-
+	
 	if (((now2 - now1) >= (cpu_t2 - cpu_t1)) &&
 			((cpu_t2 - cpu_t1) >= (MINLOOPTIME / (* ((cpu_t *)TIMESCALEADDR)))))
-		print("p2 is OK\n");
+		{
+			print("p2 is OK\n");
+		}
+		
 	else  {
 		if ((now2 - now1) < (cpu_t2 - cpu_t1))
 			print ("error: more cpu time than real time\n");
@@ -345,8 +362,8 @@ void p2() {
 
 	p1p2synch = 1;				/* p1 will check this */
 
+	
 	SYSCALL(VERHOGEN, (int)&endp2, 0, 0);				/* V(endp2)     */
-
 	SYSCALL(TERMINATETHREAD, 0, 0, 0);			/* terminate p2 */
 
 	/* just did a SYS2, so should not get to this point */
@@ -363,7 +380,7 @@ void p3() {
 
 	time1 = 0;
 	time2 = 0;
-
+	
 	/* loop until we are delayed at least half of clock V interval */
 	while (time2-time1 < (CLOCKINTERVAL >> 1) )  {
 		STCK(time1);			/* time of day     */

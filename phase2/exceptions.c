@@ -49,9 +49,11 @@
 /*************************************************/
 void generalExceptionHandler()
 {
-    unsigned int cause = ((state_t*) BIOSDATAPAGE)->s_cause;
+
+    unsigned int cause = ((state_t *)BIOSDATAPAGE)->s_cause;
 
     /* Extract exception code (bits 2-6) from cause register */
+    debug(30, 30, (cause >> GETEXCCODE) & CLEAR26MSB, 30);
     switch ((cause >> GETEXCCODE) & CLEAR26MSB)
     {
     /*Interrupt*/
@@ -98,7 +100,7 @@ void generalExceptionHandler()
     default:
         break;
     }
-}
+};
 
 /*************************************************/
 /* Trap Handler                                   */
@@ -161,40 +163,43 @@ void trapHandler()
 /* @return void                                 */
 /************************************************/
 void syscallHandler()
-{
-    /*check user/kernel mode and call trap handler if necessary*/
-    unsigned int status = ((state_t*) BIOSDATAPAGE)->s_status;
-
-    status = (status >> GETKUP) & CLEAR31MSB;                                  
-    /*get status code for syscall*/
-    
-    if (status == 1)                                                          
-    /*processor currently in user-mode, call trap handler*/
-    {
-        (((state_t*) BIOSDATAPAGE)->s_cause) &= CLEAREXCCODE;       /*Clear Cause.ExcCode*/
-        (((state_t*) BIOSDATAPAGE)->s_cause) |= EXCCODERI;       /*set Cause.ExcCode to 10 - RI*/
-        trapHandler();
-    }
-        
+{       
     int a0 = ((state_t*) BIOSDATAPAGE)->s_a0;
-    increasePC(); 
+    debug(10, 10, a0, 10);
+    if (a0 >= CREATETHREAD && a0 <= GETSPTPTR) /*check user/kernel mode and call trap handler if necessary if syscall 1-8*/
+    {
+        unsigned int status = ((state_t*) BIOSDATAPAGE)->s_status;
+        status = (status >> GETKUP) & CLEAR31MSB;                                  
+        /*get status code for syscall*/
+        
+        if (status == USER)                                                          
+        /*processor currently in user-mode, call trap handler*/
+        {
+            (((state_t*) BIOSDATAPAGE)->s_cause) &= CLEAREXCCODE;       /*Clear Cause.ExcCode*/
+            (((state_t*) BIOSDATAPAGE)->s_cause) |= EXCCODERI;       /*set Cause.ExcCode to 10 - RI*/
+            trapHandler();
+        }
+    }
+    /*not syscall 1-8, no need to check user/kernel*/
 
+    increasePC(); 
     switch (a0)
     {
     /*Create Process (SYS1)*/
     case CREATETHREAD:
     {
+        
         /* allocate new process control block */
         pcb_PTR new_proc = allocPcb();
 
         if (new_proc == NULL){
             /* new_proc == NULL -> insufficient resources, put error code -1 in v0*/
-            curr_proc->p_s.s_v0 = -1;
+            ((state_t*) BIOSDATAPAGE)->s_v0 = ERROR;
         }
         else 
         {
             /*if new process is not NULL, put 0 into v0*/
-            curr_proc->p_s.s_v0 = 0;
+            ((state_t*) BIOSDATAPAGE)->s_v0 = SUCCESS;
 
             copyState(&(new_proc->p_s), ((state_t*) BIOSDATAPAGE)->s_a1); 
             /*copy saved exception state into the new process state*/
@@ -207,7 +212,8 @@ void syscallHandler()
 
             insertChild(curr_proc, new_proc);       
             /*make new process a child of current process*/
-            process_cnt++;                       
+            process_cnt++;
+            debug(33, 33, 33, process_cnt);
 
             new_proc->p_time = (cpu_t) 0;  /*new process p_time set to zero*/
             new_proc->p_semAdd = NULL;     /*set new process p_semAdd to NULL*/
@@ -221,6 +227,7 @@ void syscallHandler()
     /*Terminate Process (SYS2)*/
     case TERMINATETHREAD:
     {
+        debug(13, 13, 13, 13);
         /* terminate the process and all its descendants*/
         killDescendants(curr_proc->p_child);
         killProcess(curr_proc);
@@ -235,7 +242,8 @@ void syscallHandler()
     /*P: decrease value of semaphore, if < 0, block the process (put it to sleep)*/
     {
         int* semAdd = ((state_t*) BIOSDATAPAGE)->s_a1;
-        
+        debug(55, 55, 55, *semAdd);
+
         /*if sem-1 >= 0 -> process is running (not blocked), return control to current process*/
         if ((*semAdd) - 1 >= 0)
         {
@@ -245,7 +253,10 @@ void syscallHandler()
             
         /*else: call Passeren operation to block process on ASL*/
         else
+        {
             Passeren(semAdd);
+            scheduler();            /* Schedule next process */
+        }
         break;
     }
         
@@ -253,7 +264,7 @@ void syscallHandler()
     case VERHOGEN:
     {
         /*Call Verhogen() to increment semaphore and wake process*/
-        Verhogen(((state_t*) BIOSDATAPAGE)->s_a1);
+        pcb_PTR unblocked_pcb = Verhogen(((state_t*) BIOSDATAPAGE)->s_a1);
             
         /*return control to current process*/
         syscallReturnToCurr();
@@ -282,6 +293,8 @@ void syscallHandler()
             
         /* block process on device semaphore, wait for device interrupts */
         Passeren(device_semAdd);
+        softblock_cnt++;        /* Increment blocked process count */
+        scheduler();            /* Schedule next process */
         break;
     }
         
@@ -304,6 +317,8 @@ void syscallHandler()
     {
         /*performs P on pseudo-clock semaphore to block the process on the ASL*/
         Passeren(&device_sem[PSEUDOCLK]);
+        softblock_cnt++;        /* Increment blocked process count */
+        scheduler();            /* Schedule next process */
         break;
     }
         
@@ -311,7 +326,7 @@ void syscallHandler()
     case GETSPTPTR:
     {
         /*return p_supportStruct if exists, otherwise return NULL*/
-        ((state_t*) BIOSDATAPAGE)->s_v0 = curr_proc->p_supportStruct;      
+        ((state_t *)BIOSDATAPAGE)->s_v0 = curr_proc->p_supportStruct;
 
         /*return control to current process*/
         syscallReturnToCurr();
@@ -390,8 +405,8 @@ void killProcess(pcb_PTR proc)
         {
             (*proc->p_semAdd)++;
             outBlocked(proc);
-            softblock_cnt--;
         }
+        /*else softblock_cnt--;*/
     }
     else {    
         /* Remove from ready queue if not blocked */
@@ -461,13 +476,7 @@ void Passeren(int* semAdd)
     /*Update the accumulated CPU time for the Current Process before it is blocked*/
     updateTime(curr_proc);
 
-    if(insertBlocked(semAdd, curr_proc) == FALSE)  /*blocked successfully*/
-    {
-        softblock_cnt++;        /* Increment blocked process count */
-        scheduler();            /* Schedule next process */
-    }
-    else /* can't block due to lack of available semaphore, stop */
-        PANIC();
+    insertBlocked(semAdd, curr_proc);
 }
 
 /*************************************************/
@@ -499,7 +508,6 @@ pcb_PTR Verhogen(int* semAdd)
         if(removed != NULL)
         {
             insertProcQ(&ready_queue, removed);     /* Add to ready queue */
-            softblock_cnt--;                        /* Decrease blocked count */
         }
     }
     return removed;
@@ -606,19 +614,20 @@ void syscallReturnToCurr()
 /*move this function back to phase 2 (?)*/
 void uTLB_RefillHandler()
 {
-
     /*TLB refill event has access to Phase 2 global variables, current process*/
-
+    debug(4, 4, 4, 4);
     /*determine the page number of the missing TLB entry by inspecting entryHI in the saved excpt state in BIOS DataPg*/
-    int p = ((state_t *)BIOSDATAPAGE)->s_entryHI >> 12;
-
+    int p = (((state_t *)BIOSDATAPAGE)->s_entryHI & 0xFF) >> 12;
     /*get Page Table entry for the page number p*/
     int missing_page = p  % 32;
+    /*debug(10, missing_page, p, 10);*/
+
     setENTRYHI(curr_proc->p_supportStruct->sup_privatePgTbl[missing_page].entryHI);
+
     setENTRYLO(curr_proc->p_supportStruct->sup_privatePgTbl[missing_page].entryLO);
+
     TLBWR();
-    LDST(((state_t *)BIOSDATAPAGE));
-
-    
-
+    /*debug(13,13,13,13);*/
+    /*((state_t *)BIOSDATAPAGE)->s_pc += 4;*/
+    LDST((state_t *)BIOSDATAPAGE);
 }

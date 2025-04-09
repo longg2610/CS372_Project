@@ -8,7 +8,7 @@
     "devices": {
         "flash0": {
             "enabled": true,
-            "file": "/Users/nguyen_v4/cs372/CS372_Project/testers/asciiArt.umps"
+            "file": "/Users/nguyen_v4/cs372/CS372_Project/testers/timeOfDay.umps"
         },
         "terminal0": {
             "enabled": true,
