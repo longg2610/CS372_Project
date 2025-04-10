@@ -4,15 +4,21 @@
 #include "h/tconst.h"
 #include "h/print.h"
 
-void main() {
+void debug2(int a0, int a1, int a2, int a3){
+	return;
+}
+void main()
+{
 	unsigned int now1 ,now2;
 	int i;
 
 	now1 = SYSCALL(GET_TOD, 0, 0, 0);
 	print(WRITETERMINAL, "todTest starts\n");
 	now1 = SYSCALL(GET_TOD, 0, 0, 0);
+	debug2(now1, 77, 77, 77);
 
 	now2 = SYSCALL(GET_TOD, 0, 0, 0);
+	debug2(now2, 99, 99, 99);
 
 	if (now2 < now1)
 		print(WRITETERMINAL, "todTest error: time decreasing\n");

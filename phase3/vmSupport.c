@@ -6,9 +6,15 @@
 int swap_pool_sem;
 swap_pool_t swap_pool[2 * UPROCMAX];
 
-int SWAPPOOL_STARTADDR = 0x20020000;
-static int frameNum = 0;
+unsigned int SWAPPOOL_STARTADDR = 0x20020000;
 
+HIDDEN int getFrameIndex(){
+    static int frameNo = 0;
+    int res;
+    res = frameNo % (UPROCMAX * 2);
+    frameNo++;
+    return res;
+}
 
 /*get support_t of currentProcess*/
 /*support_t* pFiveSupAddr = (support_t *)SYSCALL(GETSPTPTR, 0, 0, 0);*/
@@ -36,10 +42,9 @@ void initSwapStructs(){
 
 /*Swap Pool table must be accessed or updated mutex -> swap pool semaphore*/
 void pager(){
-
-    debug(8,8,8,8);
     /*get pointer to current process's support struct, syscall can't be called outside as a constant expression*/
-    support_t* curr_proc_support_struct = (support_t *) SYSCALL(GETSPTPTR, 0, 0, 0);
+    debug(22, 22, 22, 22);
+    support_t *curr_proc_support_struct = (support_t *)SYSCALL(GETSPTPTR, 0, 0, 0);
 
     /*cause of the TLB exception: in current process support structure: sup_exceptState[0]'s Cause register*/
     unsigned int cause_reg = curr_proc_support_struct->sup_exceptState[0].s_cause;
@@ -57,16 +62,16 @@ void pager(){
 
     /*determine missing page number: in saved exception state's EntryHI (The saved exception state responsible for this TLB exception should be found in the Current Process’s
 Support Structure for TLB exceptions)*/
-    /*(?) is the saved except state in current process*/
+    /*is the saved except state in current process*/
     unsigned int missing_page_num = curr_proc_support_struct->sup_exceptState[0].s_entryHI >> 12; 
 
     /*pick a frame i using the page replacement algorithm: FIFO, keep static var mod, increment by Swap Pool size each Page Fault exception*/
 
-    frameNum = (frameNum + 1) % 16; /*mod the swap pool size*/
+    int frame_index =  getFrameIndex(); /*mod the swap pool size*/
 
     /*take addr of the frame*/
     memaddr frameAddr;
-    frameAddr = (memaddr) (SWAPPOOL_STARTADDR + (frameNum * PAGESIZE));
+    frameAddr = (memaddr) (SWAPPOOL_STARTADDR + (frame_index * PAGESIZE));
 
     /* optimize
     int i;
@@ -82,14 +87,14 @@ Support Structure for TLB exceptions)*/
     /*determine of frame i is occupied*/
     /*to check if swap pool is occupied, examine the asid*/
     /*!maybe used swap_pool_table and index*/
-    if (swap_pool[frameNum].asid != -1){
+    if (swap_pool[frame_index].asid != -1){
         /*the frame is occupied*/
 
         /*disable all interrupts before update page table ,IEc*/
         disableInt();
 
         /*set the page table k as not valid*/
-        swap_pool[frameNum].pageTable_ptr->entryLO &=  0xFFFFFDFF;
+        swap_pool[frame_index].pageTable_ptr->entryLO &=  0xFFFFFDFF;
 
         /*update TLB: */
 
@@ -104,7 +109,7 @@ Support Structure for TLB exceptions)*/
 
         /*re-enable interrupts : to update atomically (pandos: 4.5.3)*/
         enableInt();
-        writeFlashDevice(curr_proc_support_struct, frameAddr, swap_pool[frameNum].pageNum);
+        writeFlashDevice(curr_proc_support_struct, frameAddr, swap_pool[frame_index].pageNum);
     }
 
     
@@ -112,12 +117,12 @@ Support Structure for TLB exceptions)*/
     readFlashDevice(curr_proc_support_struct, frameAddr, missing_page_num);
 
     /*Update Swap Pool table's entry i : ASID, pointer to current processs table entry for page p*/
-    swap_pool[frameNum].asid = curr_proc_support_struct->sup_asid;
+    swap_pool[frame_index].asid = curr_proc_support_struct->sup_asid;
 
     /*DOUBLE CHECK: update page table pointer for the swap pool*/
     int missing_page_index = missing_page_num % 32;
-    swap_pool[frameNum].pageNum = missing_page_num;
-    swap_pool[frameNum].pageTable_ptr = (page_table_t *) &(curr_proc_support_struct->sup_privatePgTbl[missing_page_index]);
+    swap_pool[frame_index].pageNum = missing_page_num;
+    swap_pool[frame_index].pageTable_ptr = (page_table_t *) &(curr_proc_support_struct->sup_privatePgTbl[missing_page_index]);
 
     /*disable interrupts*/
     disableInt();
@@ -126,7 +131,7 @@ Support Structure for TLB exceptions)*/
     /*curr_proc_support_struct->sup_privatePgTbl[missing_page_index].entryHI |= 0x00000200;*/
 
     /*update physical frame number*/
-    curr_proc_support_struct->sup_privatePgTbl[missing_page_index].entryLO = (frameAddr) | 0x200 | 0x400; 
+    curr_proc_support_struct->sup_privatePgTbl[missing_page_index].entryLO = (frameAddr) | 0x200 | 0x400;
 
     /*update TLB: */
     /*
@@ -143,7 +148,6 @@ Support Structure for TLB exceptions)*/
     enableInt();
 
     /*releas mutex for swap pool*/
-    debug(15, 15, 15, 15);
     SYSCALL(4, (int)&swap_pool_sem, 0, 0);
 
     LDST( &(curr_proc_support_struct->sup_exceptState[0]) );
@@ -157,7 +161,7 @@ void readFlashDevice(support_t* curr_support_struct, memaddr frameAddr, int bloc
     device_t* dev_reg;
     dev_reg = (device_t*) (DEVREGBASE + (FLASHINT-3) * DEVREGINTSCALE + (curr_support_struct->sup_asid -1) * DEVREGDEVSCALE);
     dev_sem_index = (FLASHINT - 3) * 8 + (curr_support_struct->sup_asid - 1);
-    debug(104, 104, deviceSemaphores[dev_sem_index], curr_support_struct->sup_asid - 1);
+
 
     blockNo = blockNo % 32;
 
@@ -182,15 +186,13 @@ void readFlashDevice(support_t* curr_support_struct, memaddr frameAddr, int bloc
     enableInt();
 
     /*V the device semaphore*/
-    debug(108, 108, curr_support_struct->sup_asid - 1, 108);
     SYSCALL(4, (int)&deviceSemaphores[dev_sem_index], 0, 0);
-    debug(106, status, curr_support_struct->sup_asid-1, 106);
     if (status != 1)
     {
         /*call trap will terminate the process*/
         program_trap((int) &swap_pool_sem, curr_support_struct);
     }
-    return;
+    return 0;
 };
 
 void writeFlashDevice(support_t* curr_support_struct, memaddr frameAddr, int blockNo){
@@ -205,7 +207,6 @@ void writeFlashDevice(support_t* curr_support_struct, memaddr frameAddr, int blo
     dev_sem_index = (FLASHINT - 3) * 8 + (curr_support_struct->sup_asid - 1);
 
     /*P device semaphore*/
-    debug(103, 103, 103, 103);
     SYSCALL(3, (int)&deviceSemaphores[dev_sem_index], 0, 0);
 
     /*write data0 field with the appropriate starting physical addr : the frame's starting addr*/
@@ -238,10 +239,10 @@ void writeFlashDevice(support_t* curr_support_struct, memaddr frameAddr, int blo
 
 void enableInt(){
     setSTATUS( getSTATUS() | IECBITON );
-    return;
+    return 0;
 }
 
 void disableInt(){
     setSTATUS(getSTATUS() & (~IECBITON));
-    return;
+    return 0;
 }

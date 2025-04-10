@@ -81,29 +81,27 @@ void test()
             for ( j = 0; j < 32; j++)
             {
                 /*set asid in each page table entry to i - the asid is at bit 6 - bit 11*/
-                support_states[i].sup_privatePgTbl[j].entryHI |= (i << 6);
+                /* support_states[i].sup_privatePgTbl[j].entryHI |= (i << 6); */
 
                 /*each page table entry's D field will be set to 1 */
-                support_states[i].sup_privatePgTbl[j].entryLO = ALLOFF | 0x00000400 | 0x000;
+                support_states[i].sup_privatePgTbl[j].entryLO = ALLOFF | 0x00000400 ;
 
                 /*VPN field (starts from bit 12 to bit 31) will be set to [0x80000000 ... 0x8001E000] to the first 31 entries*/
                 if (j != 31)
                 {
-                    support_states[i].sup_privatePgTbl[j].entryHI |= ((VPNSTART + j) << 12);
+                    support_states[i].sup_privatePgTbl[j].entryHI = ALLOFF | ((VPNSTART + j) << 12) | (i << 6);
                 }
                 else{
                     /*VPN of the stack page (page Table entry 31) should be set to 0xBFFFF*/
-                    support_states[i].sup_privatePgTbl[j].entryHI |= (0xBFFFF << 12);
+                    support_states[i].sup_privatePgTbl[j].entryHI = ALLOFF | (0xBFFFF << 12) | (i << 6);
             }
 
             /*(?) if Offset is in range 0x0008 + 0x0014, set D's field to 0 */
             }
 
             /*call SYS1 to create process*/
-            debug(6,6,6,6);
             status = SYSCALL(1, (int)&initialState, (int)&(support_states[i]), 0);
 
-            debug(7, status, i, 7);
             if (status == ERROR)
             {
                 SYSCALL(TERMINATETHREAD, 0, 0, 0);
@@ -114,7 +112,6 @@ void test()
         int t;
         for (t = 0; t < UPROCMAX; t++)
         {
-            debug(44, 44, 44, masterSemaphore);
             SYSCALL(3, (int)&masterSemaphore, 0, 0);
         }
     /*after this loop, `test` issue SYS2, triggering a HALT by the Nucleus*/

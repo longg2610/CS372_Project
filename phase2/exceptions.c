@@ -53,7 +53,6 @@ void generalExceptionHandler()
     unsigned int cause = ((state_t *)BIOSDATAPAGE)->s_cause;
 
     /* Extract exception code (bits 2-6) from cause register */
-    debug(30, 30, (cause >> GETEXCCODE) & CLEAR26MSB, 30);
     switch ((cause >> GETEXCCODE) & CLEAR26MSB)
     {
     /*Interrupt*/
@@ -165,7 +164,7 @@ void trapHandler()
 void syscallHandler()
 {       
     int a0 = ((state_t*) BIOSDATAPAGE)->s_a0;
-    debug(10, 10, a0, 10);
+    /* debug(10, 10, a0, 10);*/
     if (a0 >= CREATETHREAD && a0 <= GETSPTPTR) /*check user/kernel mode and call trap handler if necessary if syscall 1-8*/
     {
         unsigned int status = ((state_t*) BIOSDATAPAGE)->s_status;
@@ -213,7 +212,6 @@ void syscallHandler()
             insertChild(curr_proc, new_proc);       
             /*make new process a child of current process*/
             process_cnt++;
-            debug(33, 33, 33, process_cnt);
 
             new_proc->p_time = (cpu_t) 0;  /*new process p_time set to zero*/
             new_proc->p_semAdd = NULL;     /*set new process p_semAdd to NULL*/
@@ -242,7 +240,6 @@ void syscallHandler()
     /*P: decrease value of semaphore, if < 0, block the process (put it to sleep)*/
     {
         int* semAdd = ((state_t*) BIOSDATAPAGE)->s_a1;
-        debug(55, 55, 55, *semAdd);
 
         /*if sem-1 >= 0 -> process is running (not blocked), return control to current process*/
         if ((*semAdd) - 1 >= 0)
@@ -615,9 +612,8 @@ void syscallReturnToCurr()
 void uTLB_RefillHandler()
 {
     /*TLB refill event has access to Phase 2 global variables, current process*/
-    debug(4, 4, 4, 4);
     /*determine the page number of the missing TLB entry by inspecting entryHI in the saved excpt state in BIOS DataPg*/
-    int p = (((state_t *)BIOSDATAPAGE)->s_entryHI & 0xFF) >> 12;
+    unsigned int p = (((state_t *)BIOSDATAPAGE)->s_entryHI  >> 12) & 0x000FFFFF ;
     /*get Page Table entry for the page number p*/
     int missing_page = p  % 32;
     /*debug(10, missing_page, p, 10);*/

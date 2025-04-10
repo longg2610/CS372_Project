@@ -1,0 +1,6 @@
+swapTest starts
+swapTest ok: wrote to pages of seg kuseg
+swapTest ok: data survived swapper
+swapTest ok: data survived swapper
+swapTest error: could access segment kseg1
+System halted 

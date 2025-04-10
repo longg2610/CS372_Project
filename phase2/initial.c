@@ -52,7 +52,6 @@ void debug(int a0, int a1, int a2, int a3){
 }
 int main()
 {
-    debug(1, 1, 1, 1);
     /* Initialize Pass Up Vector for exceptions:
      * - TLB refill handler and stack
      * - General exception handler and stack */
@@ -82,7 +81,15 @@ int main()
     curr_proc = allocPcb();                 /*Instantiate a single process*/
     insertProcQ(&ready_queue, curr_proc);   /*place process in Ready Queue*/
     process_cnt++;
-    
+
+    /*initializing the processor state */
+    /*Local Timer (bit 27) enabled, interrupt mask on (bit 15-8), interrupt (bit 2) enabled, kernel mode on (= 0)*/
+    curr_proc->p_s.s_status = TEBITON | IMON | IEPBITON;
+    curr_proc->p_s.s_sp = *((int*) RAMBASEADDR) + *((int*) RAMBASESIZE);  /*set stack pointer to RAMTOP*/
+    curr_proc->p_s.s_pc = (memaddr) test;                                 /*set pc to test*/
+    curr_proc->p_s.s_t9 = (memaddr) test;                                 /*set s_t9 to the same value with pc*/
+
+    /*set all process tree fields to NULL*/
     curr_proc->p_prnt = NULL;
     curr_proc->p_child = NULL;
     curr_proc->p_sib = NULL;

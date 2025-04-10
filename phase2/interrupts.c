@@ -70,23 +70,33 @@ void interruptHandler(unsigned int cause)
 
     /* Check Interval Timer - Interrupt Line 2 */
     else if ((cause >> (INTERVALTMRINT + GETINTLINE) & CLEAR31MSB) == ON){
+        debug(202, 202, 202, 202);
         IntervalTimerInterruptHandler();}  
 
     /* Check Disk Devices - Interrupt Line 3 */
-    else if ((cause >> (DISKINT + GETINTLINE)        & CLEAR31MSB )== ON){nonTimerInterruptHandler(DISKINT, getPendingDevice(INTERRUPTLINE3));} 
+    else if ((cause >> (DISKINT + GETINTLINE)        & CLEAR31MSB )== ON){
+        debug(203, 203, 203, 203);
+        nonTimerInterruptHandler(DISKINT, getPendingDevice(INTERRUPTLINE3));} 
 
     /* Check Flash Drive - Interrupt Line 4 */
     else if ((cause >> (FLASHINT + GETINTLINE)       & CLEAR31MSB) == ON){
+        debug(204, 204, 204, 204);
         nonTimerInterruptHandler(FLASHINT, getPendingDevice(INTERRUPTLINE4));}
 
     /* Check Network Devices - Interrupt Line 5 */
-    else if ((cause >> (NETWINT + GETINTLINE)        & CLEAR31MSB) == ON){nonTimerInterruptHandler(NETWINT, getPendingDevice(INTERRUPTLINE5));}
+    else if ((cause >> (NETWINT + GETINTLINE)        & CLEAR31MSB) == ON){
+        debug(205, 205, 205, 205);
+        nonTimerInterruptHandler(NETWINT, getPendingDevice(INTERRUPTLINE5));}
 
     /* Check Printer Devices - Interrupt Line 6 */
-    else if ((cause >> (PRNTINT + GETINTLINE)        & CLEAR31MSB) == ON){nonTimerInterruptHandler(PRNTINT, getPendingDevice(INTERRUPTLINE6));} 
+    else if ((cause >> (PRNTINT + GETINTLINE)        & CLEAR31MSB) == ON){
+        debug(206, 206, 206, 206);
+        nonTimerInterruptHandler(PRNTINT, getPendingDevice(INTERRUPTLINE6));} 
 
     /* Check Terminal Devices - Interrupt Line 7 */
-    else if ((cause >> (TERMINT + GETINTLINE)        & CLEAR31MSB) == ON){nonTimerInterruptHandler(TERMINT, getPendingDevice(INTERRUPTLINE7));}  
+    else if ((cause >> (TERMINT + GETINTLINE)        & CLEAR31MSB) == ON){
+        debug(207, 207, 207, 207);
+        nonTimerInterruptHandler(TERMINT, getPendingDevice(INTERRUPTLINE7));}  
     /*No Pending Interrupt*/
     else                                                                 {return;}                                                               
 }
@@ -152,7 +162,7 @@ int getPendingDevice(memaddr* int_line_bitmap)
 /*************************************************/
 void nonTimerInterruptHandler(int interrupt_line, int dev_no)
 {
-    debug(500, 500, 500, 500);
+    /*debug(500, 500, 500, 500);*/
     STCK(time_start);
     /*store time spent in interrupt handling*/
 

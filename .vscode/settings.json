@@ -5,6 +5,7 @@
         "vmsupport.h": "c",
         "cstddef": "c",
         "syssupport.h": "c",
-        "const.h": "c"
+        "const.h": "c",
+        "print.h": "c"
     }
 }

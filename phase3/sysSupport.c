@@ -1,14 +1,19 @@
 #include "../h/sysSupport.h"
 #include "../h/initProc.h"
 #include "../h/const.h"
-
+#define VPNSTART    0x80000
+#define VPNTOP      0xBFFFF
 HIDDEN void sPtrIncreasePC(support_t* curr_support_struct);
 void support_syscall_handler()
 {
     support_t * curr_proc_support_struct = SYSCALL(8, 0, 0, 0);
-    debug(9, 9, 9, 9);
+    if ( (curr_proc_support_struct->sup_exceptState[1].s_entryHI >> 12) <  VPNSTART || (curr_proc_support_struct->sup_exceptState[1].s_entryHI >> 12) > VPNTOP){
+        terminate(NULL, curr_proc_support_struct);
+    };
     int a0;
     a0 = (curr_proc_support_struct->sup_exceptState[1]).s_a0;
+    /* debug(9, a0, 9, 9);*/
+
 
     switch (a0){
         case 9:
@@ -59,7 +64,9 @@ void terminate(int* semaphore, support_t* curr_support_struct){
 }
 
 void get_TOD(support_t* curr_support_struct){
-    curr_support_struct->sup_exceptState[1].s_v0 = SYSCALL(GETCPUTIME, 0, 0, 0);
+    cpu_t time_end;
+    STCK(time_end);
+    curr_support_struct->sup_exceptState[1].s_v0 = time_end;
     sPtrIncreasePC(curr_support_struct);
     LDST(&(curr_support_struct->sup_exceptState[1]));
 }
@@ -72,6 +79,7 @@ void write_to_printer(support_t* curr_support_struct){
 
     /*length of string in a2*/
     int string_len = curr_support_struct->sup_exceptState[1].s_a2;
+    
 
     /*calc printer address*/
     device_t* printer_reg;
@@ -81,16 +89,10 @@ void write_to_printer(support_t* curr_support_struct){
     int dev_sem_index;
     dev_sem_index = ((PRNTINT - 3) * DEVPERINT) + (curr_support_struct->sup_asid - 1);
 
-    /*if length of string > 128 or < 0, terminate the u-proc*/
-    if ((string_len > 128) || (string_len <= 0)){
+    /*if length of string > 128 or < 0, terminate the u-proc, check if the address is in range of the logical addr space*/
+    if ((string_len > 128) || (string_len <= 0) || virtual_addr < KUSEG){
         terminate(NULL, curr_support_struct);
         /*terminate*/
-    }
-
-    /*check if the address is in range of the logical addr space*/
-    if ( virtual_addr  < KUSEG)
-    {
-        terminate(NULL, curr_support_struct);
     }
     
     /*loop and read all characters*/
@@ -100,12 +102,12 @@ void write_to_printer(support_t* curr_support_struct){
     int errorCond = FALSE;
     char *va = (char *)virtual_addr;
 
-    while (i < string_len || !errorCond)
+    while (i < string_len && !errorCond)
     {
         c = *va ;
 
         /*P printer semaphore*/
-        SYSCALL(3, (int)&device_sem[dev_sem_index], 0, 0);
+        SYSCALL(3, (int)&deviceSemaphores[dev_sem_index], 0, 0);
         printer_reg->d_data0 = c;                   /*put character into the data0*/
 
         disableInt();
@@ -122,7 +124,7 @@ void write_to_printer(support_t* curr_support_struct){
             i++;
         }
         va++;
-        SYSCALL(4, (int)&device_sem[dev_sem_index], 0, 0);
+        SYSCALL(4, (int)&deviceSemaphores[dev_sem_index], 0, 0);
     }
 
     /*if device not ready, the negative of the device's status val is returned in v0*/
@@ -143,7 +145,8 @@ void write_to_terminal(support_t* curr_support_struct){
     int string_len = curr_support_struct->sup_exceptState[1].s_a2;
 
     /*virtual addr of first char in a1*/
-    unsigned int virtual_addr = (memaddr) curr_support_struct->sup_exceptState[1].s_a1;
+    memaddr virtual_addr = curr_support_struct->sup_exceptState[1].s_a1;
+    debug(99, 99, virtual_addr, 99);
 
     /*calc printer address*/
     device_t* terminal_reg;
@@ -154,27 +157,21 @@ void write_to_terminal(support_t* curr_support_struct){
     int dev_sem_index;
     dev_sem_index = ((TERMINT - 3) * DEVPERINT) + (curr_support_struct->sup_asid - 1) * 2;
 
-    /*if length of string > 128 and < 0, terminate the u-proc*/;
-    if ((string_len > 128) || (string_len <= 0)){
+    /*if length of string > 128 and < 0, terminate the u-proc, check if the address is in range of the logical addr space*/;
+    if ((string_len > 128) || (string_len <= 0) || virtual_addr < KUSEG ){
         terminate(NULL, curr_support_struct);
         /*terminate*/
     }
-
-    /*check if the address is in range of the logical addr space*/
-    if (virtual_addr < KUSEG)
-    {
-        terminate(NULL, curr_support_struct);
-    }
     
     char c;
-    int i;
+    int i=0;
     int status;
     int errorCond = FALSE;
-    char *va = (char *) virtual_addr;
-    while (i < string_len || !errorCond)
+    char *va =  virtual_addr;
+    while (i < string_len && !errorCond)
     {
         c = *va;
-        SYSCALL(3, (int)&device_sem[dev_sem_index], 0, 0);
+        SYSCALL(3, (int)&deviceSemaphores[dev_sem_index], 0, 0);
 
         /*write char to the command field and set COMMAND code*/
         /*terminal_reg->t_transm_command = (terminal_reg->t_transm_command & 0b1111111111111111111111100000000) | 2; */
@@ -186,7 +183,7 @@ void write_to_terminal(support_t* curr_support_struct){
 
         status = SYSCALL(5, TERMINT, (curr_support_struct->sup_asid-1), FALSE);
         enableInt();
-        SYSCALL(4, (int)&device_sem[dev_sem_index], 0, 0);
+        SYSCALL(4, (int)&deviceSemaphores[dev_sem_index], 0, 0);
 
         if ((status & TERMSTATMASK) != 5){
             errorCond = TRUE;
@@ -209,7 +206,8 @@ void write_to_terminal(support_t* curr_support_struct){
 }
 
 void read_from_terminal(support_t * curr_support_struct){
-    int transmitted_char;
+    debug(90, 90, 90, 90);
+    int transmitted_char = 0;
 
     /*support_t *curr_process_support_struct = (support_t *)SYSCALL(8, 0, 0, 0);*/
 
@@ -234,9 +232,9 @@ void read_from_terminal(support_t * curr_support_struct){
     int status;
     int errorCond = FALSE;
     char * va = (char *)virtual_addr;
-    while (*va != 0x0A || !errorCond)
+    while (*va != 0x0A && !errorCond)
     {
-        SYSCALL(3, (int)&device_sem[dev_sem_index], 0, 0);
+        SYSCALL(3, (int)&deviceSemaphores[dev_sem_index], 0, 0);
 
         /*set the receive command to 2*/
         disableInt();
@@ -244,7 +242,7 @@ void read_from_terminal(support_t * curr_support_struct){
         status = SYSCALL(5, TERMINT, (curr_support_struct->sup_asid) - 1, TRUE);
         enableInt();
 
-        SYSCALL(4, (int)&device_sem[dev_sem_index], 0, 0);
+        SYSCALL(4, (int)&deviceSemaphores[dev_sem_index], 0, 0);
 
         /*if the status is Character Received: increment the transmitted count*/
         if (status & TERMSTATMASK != 5){
@@ -252,7 +250,9 @@ void read_from_terminal(support_t * curr_support_struct){
         }
         else{
             transmitted_char++;
-            *va = (terminal_reg->t_recv_status) << 8;
+            *va = (status) >> 8;
+            debug(88, 88, va, *va);
+            break;
         }
         va++;
     }
