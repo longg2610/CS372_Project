@@ -45,6 +45,9 @@ void pager(){
     /*get pointer to current process's support struct, syscall can't be called outside as a constant expression*/
     debug(22, 22, 22, 22);
     support_t *curr_proc_support_struct = (support_t *)SYSCALL(GETSPTPTR, 0, 0, 0);
+    if ( (curr_proc_support_struct->sup_exceptState[0].s_entryHI >> 12) <  VPNSTART || (curr_proc_support_struct->sup_exceptState[1].s_entryHI >> 12) > 0xBFFFF){
+        program_trap(NULL, curr_proc_support_struct);
+    };
 
     /*cause of the TLB exception: in current process support structure: sup_exceptState[0]'s Cause register*/
     unsigned int cause_reg = curr_proc_support_struct->sup_exceptState[0].s_cause;

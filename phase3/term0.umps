@@ -1,6 +1,5 @@
-swapTest starts
-swapTest ok: wrote to pages of seg kuseg
-swapTest ok: data survived swapper
-swapTest ok: data survived swapper
-swapTest error: could access segment kseg1
+todTest starts
+todTest ok: time increasing
+todTest error: did not delay one second
+todTest completed
 System halted 

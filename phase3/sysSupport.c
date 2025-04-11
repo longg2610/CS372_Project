@@ -158,7 +158,7 @@ void write_to_terminal(support_t* curr_support_struct){
     dev_sem_index = ((TERMINT - 3) * DEVPERINT) + (curr_support_struct->sup_asid - 1) * 2;
 
     /*if length of string > 128 and < 0, terminate the u-proc, check if the address is in range of the logical addr space*/;
-    if ((string_len > 128) || (string_len <= 0) || virtual_addr < KUSEG ){
+    if ((string_len > 128) || (string_len <= 0) || virtual_addr < KUSEG){
         terminate(NULL, curr_support_struct);
         /*terminate*/
     }
@@ -176,6 +176,7 @@ void write_to_terminal(support_t* curr_support_struct){
         /*write char to the command field and set COMMAND code*/
         /*terminal_reg->t_transm_command = (terminal_reg->t_transm_command & 0b1111111111111111111111100000000) | 2; */
         disableInt();
+        debug(555, 555, 555, (c << 8) | 2);
         terminal_reg->t_transm_command = (c << 8) | 2;
 
         /*set transmit command*/
@@ -183,8 +184,8 @@ void write_to_terminal(support_t* curr_support_struct){
 
         status = SYSCALL(5, TERMINT, (curr_support_struct->sup_asid-1), FALSE);
         enableInt();
-        SYSCALL(4, (int)&deviceSemaphores[dev_sem_index], 0, 0);
 
+        SYSCALL(4, (int)&deviceSemaphores[dev_sem_index], 0, 0);
         if ((status & TERMSTATMASK) != 5){
             errorCond = TRUE;
         }
